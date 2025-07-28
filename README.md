@@ -50,17 +50,7 @@ This hybrid architecture enables scalable, responsive collaboration without a fu
 
 ## Architecture Diagram
 
-+-------------------+     WebSocket      +------------------+
-|   React Client    | <----------------> |  Node.js Server  |
-| (Frontend in Vite)|                    |   (WebSocket)    |
-+-------------------+                    +------------------+
-       |   |                                      |
-       |   | Firebase SDK                         |
-       v   v                                      |
-+------------------+                              |
-|    Firebase      | <----------------------------+
-|  (Firestore DB)  |
-+------------------+
+<pre lang="text"><code> ```text +-------------------+ WebSocket +------------------+ | React Client | <------------------> | Node.js Server | | (Frontend in Vite)| | (WebSocket) | +-------------------+ +------------------+ | | | Firebase SDK | v v +------------------+ +------------------+ | Firebase | <------------------ | Firestore Sync | | (Firestore DB) | +------------------+ +------------------+ ``` </code></pre>
 
 Responsibilities:
 - React Client: UI, text editing, local user state
