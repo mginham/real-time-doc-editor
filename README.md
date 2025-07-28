@@ -31,7 +31,7 @@ Terminal Commands to Set Up Project
 - Instal libraries
     npm install socket.io-client
     npm install firebase
-    npm install react-router-dom
+    npm install react react-dom react-router-dom
     npm install lodash
 - Start the server in the project root
     node server.js
