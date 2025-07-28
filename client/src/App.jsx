@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { useParams } from 'react-router-dom';
-import PresenceProvider from './components/PresenceProvider';
+import { PresenceProvider } from './components/PresenceProvider';
+import DocumentEditor from "./components/DocumentEditor";
 
 function App() {
     // String to store the current content of the text document
@@ -75,6 +76,7 @@ function App() {
     // Render the editor interface
     return (
         <PresenceProvider docId={docId}>
+            <DocumentEditor />
             <div className="App">
                 <h1>Real-time Collaborative Editor - {docId}</h1>
                 <textarea

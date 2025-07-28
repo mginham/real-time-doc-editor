@@ -1,77 +1,107 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, createContext, useContext } from "react";
 import {
     collection,
     doc,
     onSnapshot,
     setDoc,
-    deleteDoc
+    deleteDoc,
+    serverTimestamp
 } from "firebase/firestore";
 import { db, auth } from "../firebase/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { debounce } from "lodash";
 
-const COLORS = ["#FFB6C1", "#ADD8E6", "#90EE90", "#FFD700", "#FFA07A"];
-const getColor = (id) => COLORS[id.charCodeAt(0) % COLORS.length];
+const PresenceContext = createContext(); // Create a context to share presence data throughout the app
 
-export default function PresenceProvider({ docId, children }) {
-    // Generate or get stable userId per tab/session
+// Define a set of colors to visually differentiate users
+const COLORS = ["#FFB6C1", "#ADD8E6", "#90EE90", "#FFD700", "#FFA07A"];
+const getColor = (id) => COLORS[id.charCodeAt(0) % COLORS.length]; // Deterministic color assignment based on user ID
+
+export const PresenceProvider = ({ docId, children }) => {
+    // Get or generate a session-scoped user ID
     const getSessionUserId = () => {
         let id = sessionStorage.getItem("sessionUserId");
         if (!id) {
-            id = auth.currentUser?.uid || uuidv4();
+            id = auth.currentUser?.uid || uuidv4(); // Use auth UID if available, else random
             sessionStorage.setItem("sessionUserId", id);
         }
         return id;
     };
-    const [userId] = useState(getSessionUserId);
-    const color = getColor(userId);
+    const [userId] = useState(getSessionUserId); // Persist one userId for the session
+    const color = getColor(userId); // Assign a consistent color based on userId
 
-    const [users, setUsers] = useState({});
+    const [users, setUsers] = useState({}); // State to track all active users in the document
 
     useEffect(() => {
-        // Wait for userID to exist to prevent component from running twice with different userIds
-        if (!userId) return;
+        if (!userId) return; // Wait for userID to exist to prevent component from running twice with different userIds
 
-        const docRef = doc(db, "documentPresences", docId, "users", userId);
+        const docRef = doc(db, "documentPresences", docId, "users", userId); // Reference to the current user's presence doc
+        const presenceColRef = collection(db, "documentPresences", docId, "users"); // Reference to the current user's presence collection
 
-        // Subscribe to all users' presence in this doc
-        const unsub = onSnapshot(
-            collection(db, "documentPresences", docId, "users"),
-            (snapshot) => {
-                const data = {};
-                snapshot.forEach((doc) => data[doc.id] = doc.data());
-                setUsers(data);
-            }
-        );
+        // Listen for changes in the presence collection
+        const unsub = onSnapshot(presenceColRef, (snapshot) => {
+            const now = Date.now();
+            const freshUsers = {};
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const lastActive = data.lastActive?.toMillis?.() || data.lastActive || 0; // Convert Firestore timestamp to millis if needed
+                
+                // Only include users active in the last 10 seconds
+                if (now - lastActive < 10000) {
+                    freshUsers[doc.id] = data;
+                }
+            });
+            setUsers(freshUsers); // Update local state with all active users
+        });
 
-        // Debounced presence updater
-        const updatePresence = debounce((e) => {
-            const presence = {
+        // Sends regular heartbeats to signal user is still present
+        const sendHeartbeat = () => {
+            setDoc(docRef, {
                 name: `User ${userId.slice(0, 4)}`,
                 color,
+                lastActive: serverTimestamp(), // Server-generated timestamp
+            }, { merge: true }); // Merge with existing doc
+        };
+        sendHeartbeat(); // Initial heartbeat
+
+        const heartbeatInterval = setInterval(sendHeartbeat, 5000); // Repeat every 5 sec
+
+        // Debounced function to update user's cursor position
+        const updateCursor = debounce((e) => {
+            setDoc(docRef, {
                 cursor: { x: e.clientX, y: e.clientY },
-                lastActive: Date.now(),
-            };
-            setDoc(docRef, presence, { merge: true });
+            }, { merge: true });
         }, 100);
 
-        window.addEventListener("mousemove", updatePresence);
+        window.addEventListener("mousemove", updateCursor); // Track mouse movement
+
+        // On tab close or reload, attempt to remove the presence document
+        const handleUnload = async () => {
+            try {
+                await deleteDoc(docRef);
+            } catch (err) {
+                console.warn("Failed to delete presence on unload:", err);
+            }
+        };
+
+        window.addEventListener("beforeunload", handleUnload);
 
         // Cleanup on unmount
         return () => {
-            // Ignore errors on delete
-            deleteDoc(docRef).catch(() => {});
-
-            window.removeEventListener("mousemove", updatePresence);
-            unsub();
-            updatePresence.cancel();
+            clearInterval(heartbeatInterval); // Stop heartbeat loop
+            updateCursor.cancel(); // Cancel debounce
+            window.removeEventListener("mousemove", updateCursor);
+            window.removeEventListener("beforeunload", handleUnload);
+            handleUnload(); // Try one last cleanup
+            unsub(); // Unsubscribe from Firestore
         };
     }, [docId, userId, color]);
 
     return (
-        <>
+        <PresenceContext.Provider value={{ userId, users, color }}>
             {children}
-            {/* Render presence cursors */}
+
+            {/* Render presence cursors for other users */}
             {Object.entries(users).map(([id, data]) =>
                 id !== userId ? (
                     <div
@@ -94,7 +124,7 @@ export default function PresenceProvider({ docId, children }) {
                 ) : null
             )}
 
-            {/* Sidebar of users */}
+            {/* Fixed-position sidebar listing all active users */}
             <div style={{
                 position: "fixed",
                 top: 10,
@@ -111,6 +141,9 @@ export default function PresenceProvider({ docId, children }) {
                     </div>
                 ))}
             </div>
-        </>
+        </PresenceContext.Provider>
     );
-}
+};
+
+// Custom hook to access presence data from any child component
+export const usePresence = () => useContext(PresenceContext);
