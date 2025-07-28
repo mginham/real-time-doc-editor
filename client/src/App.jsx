@@ -1,6 +1,7 @@
 // Import necessary modules
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import PresenceProvider from './components/PresenceProvider';
 
 function App() {
     // String to store the current content of the text document
@@ -70,15 +71,17 @@ function App() {
 
     // Render the editor interface
     return (
-        <div className="App">
-        <h1>Real-time Collaborative Editor</h1>
-        <textarea
-            value={document}
-            onChange={handleChange}
-            rows="20"
-            cols="80"
-        />
-        </div>
+        <PresenceProvider docId="demo-doc">
+            <div className="App">
+                <h1>Real-time Collaborative Editor</h1>
+                <textarea
+                    value={document}
+                    onChange={handleChange}
+                    rows="20"
+                    cols="80"
+                />
+            </div>
+        </PresenceProvider>
     );
 }
 
