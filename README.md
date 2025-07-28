@@ -30,6 +30,9 @@ Terminal Commands to Set Up Project
     npx create-react-app client
 - Instal libraries
     npm install socket.io-client
+    npm install firebase
+    npm install react-router-dom
+    npm install lodash
 - Start the server in the project root
     node server.js
 - Navigate to the client directory in order to start the React app

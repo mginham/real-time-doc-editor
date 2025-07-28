@@ -8,17 +8,33 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../firebase/firebase";
 import { v4 as uuidv4 } from "uuid";
+import { debounce } from "lodash";
 
 const COLORS = ["#FFB6C1", "#ADD8E6", "#90EE90", "#FFD700", "#FFA07A"];
 const getColor = (id) => COLORS[id.charCodeAt(0) % COLORS.length];
 
 export default function PresenceProvider({ docId, children }) {
-    const [users, setUsers] = useState({});
-    const userId = auth.currentUser?.uid || uuidv4();
+    // Generate or get stable userId per tab/session
+    const getSessionUserId = () => {
+        let id = sessionStorage.getItem("sessionUserId");
+        if (!id) {
+            id = auth.currentUser?.uid || uuidv4();
+            sessionStorage.setItem("sessionUserId", id);
+        }
+        return id;
+    };
+    const [userId] = useState(getSessionUserId);
     const color = getColor(userId);
 
+    const [users, setUsers] = useState({});
+
     useEffect(() => {
+        // Wait for userID to exist to prevent component from running twice with different userIds
+        if (!userId) return;
+
         const docRef = doc(db, "documentPresences", docId, "users", userId);
+
+        // Subscribe to all users' presence in this doc
         const unsub = onSnapshot(
             collection(db, "documentPresences", docId, "users"),
             (snapshot) => {
@@ -28,24 +44,29 @@ export default function PresenceProvider({ docId, children }) {
             }
         );
 
-        const handleMouseMove = (e) => {
+        // Debounced presence updater
+        const updatePresence = debounce((e) => {
             const presence = {
                 name: `User ${userId.slice(0, 4)}`,
                 color,
                 cursor: { x: e.clientX, y: e.clientY },
-                lastActive: Date.now()
+                lastActive: Date.now(),
             };
             setDoc(docRef, presence, { merge: true });
-        };
+        }, 100);
 
-        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mousemove", updatePresence);
 
+        // Cleanup on unmount
         return () => {
-            deleteDoc(docRef);
-            window.removeEventListener("mousemove", handleMouseMove);
+            // Ignore errors on delete
+            deleteDoc(docRef).catch(() => {});
+
+            window.removeEventListener("mousemove", updatePresence);
             unsub();
+            updatePresence.cancel();
         };
-    }, [docId, userId]);
+    }, [docId, userId, color]);
 
     return (
         <>

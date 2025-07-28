@@ -1,6 +1,7 @@
 // Import necessary modules
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { useParams } from 'react-router-dom';
 import PresenceProvider from './components/PresenceProvider';
 
 function App() {
@@ -8,6 +9,8 @@ function App() {
     const [document, setDocument] = useState("");
     // WebSocket instance to handle the WebSocket connection
     const [socket, setSocket] = useState(null);
+    // Grab docId from the URL
+    const { docId } = useParams();
 
     // Set up WebSocket connection
     // - This hook will run once when the component mounts
@@ -71,9 +74,9 @@ function App() {
 
     // Render the editor interface
     return (
-        <PresenceProvider docId="demo-doc">
+        <PresenceProvider docId={docId}>
             <div className="App">
-                <h1>Real-time Collaborative Editor</h1>
+                <h1>Real-time Collaborative Editor - {docId}</h1>
                 <textarea
                     value={document}
                     onChange={handleChange}

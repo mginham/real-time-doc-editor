@@ -1,14 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import './index.css';
+import LandingPage from "./pages/LandingPage";
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+    <BrowserRouter>
+        <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/edit/:docId" element={<App />} />
+            <Route path="*" element={<div>404 Not Found</div>} />
+        </Routes>
+    </BrowserRouter>
 );
 
 // If you want to start measuring performance in your app, pass a function
