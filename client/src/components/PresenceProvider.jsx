@@ -14,7 +14,7 @@ import { debounce } from "lodash";
 const PresenceContext = createContext(); // Create a context to share presence data throughout the app
 
 // Define a set of colors to visually differentiate users
-const COLORS = ["#FFB6C1", "#ADD8E6", "#90EE90", "#FFD700", "#FFA07A"];
+const COLORS = ["#8931EF", "#F2CA19", "#FF00BD", "#0057E9", "#87E911", "#E11845"];
 const getColor = (id) => COLORS[id.charCodeAt(0) % COLORS.length]; // Deterministic color assignment based on user ID
 
 export const PresenceProvider = ({ docId, children }) => {
@@ -130,7 +130,8 @@ export const PresenceProvider = ({ docId, children }) => {
                 top: 10,
                 right: 10,
                 backgroundColor: "#eee",
-                padding: "8px",
+                margin: "10px",
+                padding: "20px",
                 borderRadius: "6px",
                 boxShadow: "0 0 4px rgba(0,0,0,0.2)"
             }}>

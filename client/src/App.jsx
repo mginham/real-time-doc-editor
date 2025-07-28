@@ -78,7 +78,31 @@ function App() {
         <PresenceProvider docId={docId}>
             <DocumentEditor />
             <div className="App">
-                <h1>Real-time Collaborative Editor - {docId}</h1>
+                <h1>Real-time Collaborative Editor</h1>
+
+                {/* Copy Document ID Button */}
+                <div style={{ marginBottom: "16px" }}>
+                    <span style={{ fontWeight: "bold", marginRight: 8 }}>Doc ID:</span>
+                    <code style={{ marginRight: 12 }}>{docId}</code>
+                    <button
+                        onClick={() => {
+                            navigator.clipboard.writeText(`${docId}`);
+                            alert("Document link copied to clipboard!");
+                        }}
+                        style={{
+                            padding: "6px 12px",
+                            fontSize: 14,
+                            cursor: "pointer",
+                            borderRadius: 6,
+                            border: "1px solid #ccc",
+                            backgroundColor: "#f0f0f0",
+                        }}
+                    >
+                        Copy Link
+                    </button>
+                </div>
+
+                {/* Main Text Editor */}
                 <textarea
                     value={document}
                     onChange={handleChange}
