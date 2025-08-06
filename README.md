@@ -1,4 +1,4 @@
-# real-time-doc-editor
+# Real-Time Collaborative Editor
 
 ## Overview
 
